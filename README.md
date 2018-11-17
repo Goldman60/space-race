@@ -1,7 +1,9 @@
 CSC 471 Final Project - Space Race
 ===================================
 
-Currently in Alpha for Milestone 1
+Currently in Alpha for Milestone 1.
+
+[Website](https://projects.ajfite.com/csc471-finalproject)
 
 ## Author
 
