@@ -17,7 +17,12 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include <glm/gtc/matrix_transform.hpp>
 using namespace std;
 using namespace glm;
-shared_ptr<Shape> shape;
+shared_ptr<Shape> sphere;
+shared_ptr<Shape> cube;
+shared_ptr<Shape> planet;
+shared_ptr<Shape> teapot;
+shared_ptr<Shape> bunny;
+shared_ptr<Shape> ship;
 
 
 double get_last_elapsed_time()
@@ -74,7 +79,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog,psky;
+	std::shared_ptr<Program> prog,psky,bunnyProg;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -85,6 +90,10 @@ public:
 	//texture data
 	GLuint Texture;
 	GLuint Texture2;
+	GLuint PlanetTex0;
+	GLuint PlanetTex1;
+	GLuint PlanetTex2;
+	GLuint PlanetTex3;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -131,24 +140,7 @@ public:
 	// written
 	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
 	{
-		double posX, posY;
-		float newPt[2];
-		if (action == GLFW_PRESS)
-		{
-			glfwGetCursorPos(window, &posX, &posY);
-			std::cout << "Pos X " << posX <<  " Pos Y " << posY << std::endl;
 
-			//change this to be the points converted to WORLD
-			//THIS IS BROKEN< YOU GET TO FIX IT - yay!
-			newPt[0] = 0;
-			newPt[1] = 0;
-
-			std::cout << "converted:" << newPt[0] << " " << newPt[1] << std::endl;
-			glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-			//update the vertex array with the updated points
-			glBufferSubData(GL_ARRAY_BUFFER, sizeof(float)*6, sizeof(float)*2, newPt);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-		}
 	}
 
 	//if the window is resized, capture the new size and reset the viewport
@@ -161,16 +153,17 @@ public:
 	}
 
 	/*Note that any gl calls must always happen after a GL state is initialized */
+	/* Billboards and Skybox */
 	void initGeom()
 	{
 
 		string resourceDirectory = "../resources";
 		// Initialize mesh.
-		shape = make_shared<Shape>();
-		//shape->loadMesh(resourceDirectory + "/t800.obj");
-		shape->loadMesh(resourceDirectory + "/sphere.obj");
-		shape->resize();
-		shape->init();
+		sphere = make_shared<Shape>();
+		//sphere->loadMesh(resourceDirectory + "/t800.obj");
+		sphere->loadMesh(resourceDirectory + "/sphere.obj");
+		sphere->resize();
+		sphere->init();
 
 		//generate the VAO
 		glGenVertexArrays(1, &VertexArrayID);
@@ -275,7 +268,7 @@ public:
 		char filepath[1000];
 
 		//texture 1
-		string str = resourceDirectory + "/mario.png";
+		string str = resourceDirectory + "/Ring.png";
 		strcpy(filepath, str.c_str());
 		unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture);
@@ -288,7 +281,7 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		//texture 2
-		str = resourceDirectory + "/sky.jpg";
+		str = resourceDirectory + "/seamless-starfield-texture.jpg";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture2);
@@ -355,6 +348,146 @@ public:
 		psky->addAttribute("vertPos");
 		psky->addAttribute("vertNor");
 		psky->addAttribute("vertTex");
+
+		bunnyProg = std::make_shared<Program>();
+		bunnyProg->setVerbose(true);
+		bunnyProg->setShaderNames(resourceDirectory + "/skyvertex.glsl", resourceDirectory + "/skyfrag.glsl");
+		if (!bunnyProg->init())
+		{
+			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			exit(1);
+		}
+		bunnyProg->addUniform("P");
+		bunnyProg->addUniform("V");
+		bunnyProg->addUniform("M");
+		bunnyProg->addUniform("campos");
+		bunnyProg->addAttribute("vertPos");
+		bunnyProg->addAttribute("vertNor");
+		bunnyProg->addAttribute("vertTex");
+	}
+
+	/**
+	 * General purpose cube
+	 */
+	void initCube() {
+		string resourceDirectory = "../resources" ;
+		// Initialize mesh.
+		cube = make_shared<Shape>();
+		cube->loadMesh(resourceDirectory + "/cube.obj");
+		cube->resize();
+		cube->init();
+	}
+
+	/**
+	 * Planets
+	 */
+	void initPlanet() {
+		string resourceDirectory = "../resources" ;
+		// Initialize mesh.
+		planet = make_shared<Shape>();
+		//shape->loadMesh(resourceDirectory + "/t800.obj");
+		planet->loadMesh(resourceDirectory + "/sphere.obj");
+		planet->resize();
+		planet->init();
+
+		int width, height, channels;
+		char filepath[1000];
+
+		//texture 1
+		string str = resourceDirectory + "/2k_earth_clouds.jpg";
+		strcpy(filepath, str.c_str());
+		unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &PlanetTex0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, PlanetTex0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		//texture 2
+		str = resourceDirectory + "/2k_earth_daymap.jpg";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &PlanetTex1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, PlanetTex1);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		// Specular texture
+		str = resourceDirectory + "/2k_earth_specular_map.jpg";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &PlanetTex2);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, PlanetTex2);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		// Night Texture
+		str = resourceDirectory + "/2k_earth_nightmap.jpg";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &PlanetTex3);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, PlanetTex3);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		//[FOURTEXTURES]
+		//set the 2 textures to the correct samplers in the fragment shader:
+		GLuint Tex1Location = glGetUniformLocation(psky->pid, "tex");//tex, tex2... sampler in the fragment shader
+		GLuint Tex2Location = glGetUniformLocation(psky->pid, "tex2");
+		GLuint Tex3Location = glGetUniformLocation(psky->pid, "tex3");
+		GLuint Tex4Location = glGetUniformLocation(psky->pid, "tex4");
+		// Then bind the uniform samplers to texture units:
+		glUseProgram(psky->pid);
+		glUniform1i(PlanetTex0, 0);
+		glUniform1i(PlanetTex0, 1);
+		glUniform1i(PlanetTex0, 2);
+		glUniform1i(PlanetTex0, 3);
+	}
+
+	/**
+	 * Bunny
+	 */
+	void initBunny() {
+		string resourceDirectory = "../resources" ;
+		// Initialize mesh.
+		bunny = make_shared<Shape>();
+		bunny->loadMesh(resourceDirectory + "/bunny.obj");
+		bunny->resize();
+		bunny->init();
+	}
+
+	void initShip() {
+		string resourceDirectory = "../resources" ;
+		// Initialize mesh.
+		ship = make_shared<Shape>();
+		ship->loadMesh(resourceDirectory + "/ship/enterprise1701d.obj");
+		ship->resize();
+		ship->init();
+	}
+
+	void initTeapot() {
+		string resourceDirectory = "../resources" ;
+		// Initialize mesh.
+		teapot = make_shared<Shape>();
+		teapot->loadMesh(resourceDirectory + "/teapot.obj");
+		teapot->resize();
+		teapot->init();
 	}
 
 
@@ -412,7 +545,7 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture2);
 		glDisable(GL_DEPTH_TEST);
-		shape->draw(psky, FALSE);
+		sphere->draw(psky, false);
 		glEnable(GL_DEPTH_TEST);
 	
 		psky->unbind();
@@ -470,6 +603,26 @@ public:
 		
 		prog->unbind();
 
+		M = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+		psky->bind();
+		//send the matrices to the shaders
+		glUniformMatrix4fv(psky->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(psky->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(psky->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(psky->getUniform("campos"), 1, &mycam.pos[0]);
+
+		bunny->draw(psky, false);
+		psky->unbind();
+
+		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(0,-0.25f,-2.5f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(0, 1, 0));
+		psky->bind();
+		//send the matrices to the shaders
+		glUniformMatrix4fv(psky->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(psky->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(psky->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(psky->getUniform("campos"), 1, &mycam.pos[0]);
+		ship->draw(psky, true);
+		psky->unbind();
 	}
 
 };
@@ -496,6 +649,11 @@ int main(int argc, char **argv)
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
+	application->initCube();
+	application->initBunny();
+	application->initTeapot();
+	application->initPlanet();
+	application->initShip();
 
 	// Loop until the user closes the window.
 	while(! glfwWindowShouldClose(windowManager->getHandle()))

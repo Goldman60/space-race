@@ -17,7 +17,7 @@ void Shape::loadMesh(const string &meshName, string *mtlpath, unsigned char *(lo
 	vector<tinyobj::shape_t> shapes;
 	vector<tinyobj::material_t> objMaterials;
 	string errStr;
-	bool rc = FALSE;
+	bool rc = false;
 	if (mtlpath)
 		rc = tinyobj::LoadObj(shapes, objMaterials, errStr, meshName.c_str(), mtlpath->c_str());
 	else
@@ -49,7 +49,7 @@ void Shape::loadMesh(const string &meshName, string *mtlpath, unsigned char *(lo
 		{
 			//load textures
 			textureIDs[i] = 0;
-			//texture sky			
+			//texture sky
 			posBuf[i] = shapes[i].mesh.positions;
 			norBuf[i] = shapes[i].mesh.normals;
 			texBuf[i] = shapes[i].mesh.texcoords;
@@ -206,7 +206,7 @@ void Shape::init()
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		assert(glGetError() == GL_NO_ERROR);
+		//assert(glGetError() == GL_NO_ERROR);
 	}
 }
 void Shape::draw(const shared_ptr<Program> prog,bool use_extern_texures) const
@@ -249,7 +249,7 @@ void Shape::draw(const shared_ptr<Program> prog,bool use_extern_texures) const
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eleBufID[i]);
 
 		//texture
-		
+
 		if (!use_extern_texures)
 		{
 			int textureindex = materialIDs[i];

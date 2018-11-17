@@ -7,6 +7,8 @@ uniform vec3 campos;
 
 uniform sampler2D tex;
 uniform sampler2D tex2;
+uniform sampler2D tex3;
+uniform sampler2D tex4;
 
 void main()
 {
