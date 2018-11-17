@@ -157,13 +157,8 @@ void Shape::resize()
 		}
 }
 
-void Shape::init()
-{
-	for (int i = 0; i < obj_count; i++)
-
-	{
-
-
+void Shape::init() {
+	for (int i = 0; i < obj_count; i++) {
 		// Initialize the vertex array object
 		glGenVertexArrays(1, &vaoID[i]);
 		glBindVertexArray(vaoID[i]);
@@ -209,7 +204,15 @@ void Shape::init()
 		//assert(glGetError() == GL_NO_ERROR);
 	}
 }
-void Shape::draw(const shared_ptr<Program> prog,bool use_extern_texures) const
+
+/**
+ * Init an instanced shape
+ */
+void Shape::initInstanced() {
+
+}
+
+void Shape::draw(const shared_ptr<Program> prog, bool use_extern_texures, bool instanced) const
 {
 	for (int i = 0; i < obj_count; i++)
 

@@ -24,6 +24,8 @@ shared_ptr<Shape> teapot;
 shared_ptr<Shape> bunny;
 shared_ptr<Shape> ship;
 
+#define RING_COUNT 200
+
 
 double get_last_elapsed_time()
 {
@@ -79,7 +81,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog,psky,bunnyProg;
+	std::shared_ptr<Program> prog, psky, pShip;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -241,12 +243,15 @@ public:
 		//set the current state to focus on our vertex buffer
 		glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer);
 		glm::vec4 *positions = new glm::vec4[500];
-		for (int i = 0; i<500; i++)
-			positions[i] = glm::vec4(-250 + i, 0, -10, 0);
+		for (int i = 0; i < RING_COUNT; i++) {
+			int randx = (rand() % 1000) - 500;
+			int randz = (rand() % 1000) - 500;
+			positions[i] = glm::vec4(randx, 0, randz, 0);
+		}
 		//actually memcopy the data - only do this once
 		glBufferData(GL_ARRAY_BUFFER, 500 * sizeof(glm::vec4), positions, GL_STATIC_DRAW);
 		int position_loc = glGetAttribLocation(prog->pid, "InstancePos");
-		for (int i = 0; i < 500; i++)
+		for (int i = 0; i < RING_COUNT; i++)
 		{
 			// Set up the vertex attribute
 			glVertexAttribPointer(position_loc + i,              // Location
@@ -281,7 +286,7 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		//texture 2
-		str = resourceDirectory + "/seamless-starfield-texture.jpg";
+		str = resourceDirectory + "/starfield.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture2);
@@ -349,21 +354,21 @@ public:
 		psky->addAttribute("vertNor");
 		psky->addAttribute("vertTex");
 
-		bunnyProg = std::make_shared<Program>();
-		bunnyProg->setVerbose(true);
-		bunnyProg->setShaderNames(resourceDirectory + "/skyvertex.glsl", resourceDirectory + "/skyfrag.glsl");
-		if (!bunnyProg->init())
+        pShip = std::make_shared<Program>();
+        pShip->setVerbose(true);
+        pShip->setShaderNames(resourceDirectory + "/shipvertex.glsl", resourceDirectory + "/shipfrag.glsl");
+		if (!pShip->init())
 		{
 			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
 			exit(1);
 		}
-		bunnyProg->addUniform("P");
-		bunnyProg->addUniform("V");
-		bunnyProg->addUniform("M");
-		bunnyProg->addUniform("campos");
-		bunnyProg->addAttribute("vertPos");
-		bunnyProg->addAttribute("vertNor");
-		bunnyProg->addAttribute("vertTex");
+        pShip->addUniform("P");
+        pShip->addUniform("V");
+        pShip->addUniform("M");
+		pShip->addUniform("campos");
+        pShip->addAttribute("vertPos");
+        pShip->addAttribute("vertNor");
+        pShip->addAttribute("vertTex");
 	}
 
 	/**
@@ -545,7 +550,7 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture2);
 		glDisable(GL_DEPTH_TEST);
-		sphere->draw(psky, false);
+		sphere->draw(psky, false, false);
 		glEnable(GL_DEPTH_TEST);
 	
 		psky->unbind();
@@ -577,7 +582,6 @@ public:
 		glBindVertexArray(VertexArrayID);
 		//actually draw from vertex 0, 3 vertices
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
-		//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, (void*)0);
 		mat4 Vi = glm::transpose(V);
 		Vi[0][3] = 0;
 		Vi[1][3] = 0;
@@ -589,40 +593,33 @@ public:
 		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		
 		glDisable(GL_DEPTH_TEST);
-		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0,500);
+		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0, RING_COUNT);
 		glEnable(GL_DEPTH_TEST);
-		/*for (int z = 0; z < 5; z++)
-		{
-			glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f+z, 0.0f, -3 - z));
-			M = TransZ * S* Vi;
-			glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-		}*/
 		glBindVertexArray(0);
 
 		
 		prog->unbind();
 
 		M = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-		psky->bind();
+        pShip->bind();
 		//send the matrices to the shaders
-		glUniformMatrix4fv(psky->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(psky->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(psky->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniform3fv(psky->getUniform("campos"), 1, &mycam.pos[0]);
+		glUniformMatrix4fv(pShip->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pShip->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pShip->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pShip->getUniform("campos"), 1, &mycam.pos[0]);
 
-		bunny->draw(psky, false);
-		psky->unbind();
+		bunny->draw(pShip, false, false);
+        pShip->unbind();
 
-		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(0,-0.25f,-2.5f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(0, 1, 0));
-		psky->bind();
+		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(0,-0.20f,-1.8f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(0, 1, 0));
+		pShip->bind();
 		//send the matrices to the shaders
-		glUniformMatrix4fv(psky->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(psky->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(psky->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniform3fv(psky->getUniform("campos"), 1, &mycam.pos[0]);
-		ship->draw(psky, true);
-		psky->unbind();
+		glUniformMatrix4fv(pShip->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pShip->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pShip->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pShip->getUniform("campos"), 1, &mycam.pos[0]);
+		ship->draw(pShip, true, false);
+        pShip->unbind();
 	}
 
 };
@@ -652,7 +649,7 @@ int main(int argc, char **argv)
 	application->initCube();
 	application->initBunny();
 	application->initTeapot();
-	application->initPlanet();
+	//application->initPlanet();
 	application->initShip();
 
 	// Loop until the user closes the window.

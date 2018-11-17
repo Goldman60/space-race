@@ -24,8 +24,9 @@ public:
 	//stbi_load(char const *filename, int *x, int *y, int *comp, int req_comp)
 	void loadMesh(const std::string &meshName, std::string *mtlName = NULL, unsigned char *(loadimage)(char const *, int *, int *, int *, int) = NULL);
 	void init();
+	void initInstanced();
 	void resize();
-	void draw(const std::shared_ptr<Program> prog, bool use_extern_texures) const;
+	void draw(const std::shared_ptr<Program> prog, bool use_extern_texures, bool instanced) const;
 	unsigned int *textureIDs = NULL;
 
 
