@@ -47,20 +47,34 @@ public:
 	}
 	glm::mat4 process(double ftime)
 	{
-		float speed = 0;
+		static float speed = 0;
 		if (w == 1)
 		{
-			speed = 10*ftime;
+			speed += 1 * ftime;
 		}
 		else if (s == 1)
 		{
-			speed = -10*ftime;
+		    if (speed >= -4 * ftime) {
+                speed -= 1 * ftime;
+            }
 		}
+		else if (speed >= 0) {
+		    speed -= 0.5f * ftime;
+		}
+		else if (speed <= 0) {
+		    speed += 0.5f * ftime;
+		}
+
+		// Fixes the jitter at low speeds
+		if (w == 0 && s ==0 && abs(speed) <= 1 * ftime) {
+		    speed = 0;
+		}
+
 		float yangle=0;
 		if (a == 1)
-			yangle = -3*ftime;
+			yangle = -2*ftime;
 		else if(d==1)
-			yangle = 3*ftime;
+			yangle = 2*ftime;
 		rot.y += yangle;
 		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
 		glm::vec4 dir = glm::vec4(0, 0, speed,1);
@@ -600,7 +614,7 @@ public:
 		
 		prog->unbind();
 
-		M = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+		M = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
         pShip->bind();
 		//send the matrices to the shaders
 		glUniformMatrix4fv(pShip->getUniform("P"), 1, GL_FALSE, &P[0][0]);
@@ -611,7 +625,29 @@ public:
 		bunny->draw(pShip, false, false);
         pShip->unbind();
 
-		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(0,-0.20f,-1.8f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) * glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(0, 1, 0));
+        // Tip rate calculation
+        static float tiprate = 0;
+
+        if (mycam.a && tiprate >= -0.75f) {
+            tiprate -= .005;
+        }
+        else if (mycam.d && tiprate <= 0.75) {
+            tiprate += .005;
+        }
+        else if (tiprate <= 0) {
+            tiprate += .009;
+        }
+        else if (tiprate >= 0) {
+            tiprate -= .009;
+        }
+
+        if (!mycam.a && !mycam.d && abs(tiprate) <= .01) {
+            tiprate = 0;
+        }
+
+		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) *
+		        glm::translate(glm::mat4(1.0f), vec3(0,-0.20f,-1.8f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f)) *
+		        glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(tiprate, 1, 0));
 		pShip->bind();
 		//send the matrices to the shaders
 		glUniformMatrix4fv(pShip->getUniform("P"), 1, GL_FALSE, &P[0][0]);
