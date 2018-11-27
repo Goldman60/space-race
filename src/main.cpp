@@ -493,9 +493,10 @@ public:
 
 	void initShip() {
 		string resourceDirectory = "../resources" ;
+		string pathmtl = resourceDirectory + "/ship/";
 		// Initialize mesh.
 		ship = make_shared<Shape>();
-		ship->loadMesh(resourceDirectory + "/ship/enterprise1701d.obj");
+		ship->loadMesh(resourceDirectory + "/ship/enterprise1701d.obj", &pathmtl, stbi_load);
 		ship->resize();
 		ship->init();
 	}
@@ -654,7 +655,7 @@ public:
 		glUniformMatrix4fv(pShip->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pShip->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniform3fv(pShip->getUniform("campos"), 1, &mycam.pos[0]);
-		ship->draw(pShip, true, false);
+		ship->draw(pShip, false, false);
         pShip->unbind();
 	}
 
