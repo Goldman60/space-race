@@ -95,7 +95,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog, psky, pShip;
+	std::shared_ptr<Program> prog, psky, pShip, pPlanet;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -383,6 +383,22 @@ public:
         pShip->addAttribute("vertPos");
         pShip->addAttribute("vertNor");
         pShip->addAttribute("vertTex");
+
+        pPlanet = std::make_shared<Program>();
+        pPlanet->setVerbose(true);
+        pPlanet->setShaderNames(resourceDirectory + "/normal_vertex.glsl", resourceDirectory + "/normal_fragment.glsl");
+        if (!pPlanet->init())
+        {
+            std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+            exit(1);
+        }
+        pPlanet->addUniform("P");
+        pPlanet->addUniform("V");
+        pPlanet->addUniform("M");
+        pPlanet->addUniform("campos");
+        pPlanet->addAttribute("vertPos");
+        pPlanet->addAttribute("vertNor");
+        pPlanet->addAttribute("vertTex");
 	}
 
 	/**
@@ -616,15 +632,15 @@ public:
 		prog->unbind();
 
 		M = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
-        pShip->bind();
+        pPlanet->bind();
 		//send the matrices to the shaders
-		glUniformMatrix4fv(pShip->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(pShip->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(pShip->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniform3fv(pShip->getUniform("campos"), 1, &mycam.pos[0]);
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
 
-		bunny->draw(pShip, false, false);
-        pShip->unbind();
+		bunny->draw(pPlanet, false, false);
+        pPlanet->unbind();
 
         // Tip rate calculation
         static float tiprate = 0;

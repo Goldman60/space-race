@@ -10,9 +10,6 @@ uniform sampler2D tex2;
 
 void main()
 {
-vec4 tcol = texture(tex, vertex_tex);
+vec4 tcol = vec4(texture(tex, vertex_tex).rgb + 0.25, 1);
 color = tcol;
-
-
-
 }
