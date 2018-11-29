@@ -23,6 +23,7 @@ shared_ptr<Shape> planet;
 shared_ptr<Shape> teapot;
 shared_ptr<Shape> bunny;
 shared_ptr<Shape> ship;
+shared_ptr<Shape> t800;
 
 #define RING_COUNT 200
 
@@ -176,7 +177,6 @@ public:
 		string resourceDirectory = "../resources";
 		// Initialize mesh.
 		sphere = make_shared<Shape>();
-		//sphere->loadMesh(resourceDirectory + "/t800.obj");
 		sphere->loadMesh(resourceDirectory + "/sphere.obj");
 		sphere->resize();
 		sphere->init();
@@ -277,11 +277,8 @@ public:
 			// Make it instanced
 			glVertexAttribDivisor(position_loc + i, 1);
 		}
-
-
+		
 		glBindVertexArray(0);
-
-	
 
 		int width, height, channels;
 		char filepath[1000];
@@ -402,18 +399,6 @@ public:
 	}
 
 	/**
-	 * General purpose cube
-	 */
-	void initCube() {
-		string resourceDirectory = "../resources" ;
-		// Initialize mesh.
-		cube = make_shared<Shape>();
-		cube->loadMesh(resourceDirectory + "/cube.obj");
-		cube->resize();
-		cube->init();
-	}
-
-	/**
 	 * Planets
 	 */
 	void initPlanet() {
@@ -495,16 +480,13 @@ public:
 		glUniform1i(PlanetTex0, 3);
 	}
 
-	/**
-	 * Bunny
-	 */
-	void initBunny() {
-		string resourceDirectory = "../resources" ;
-		// Initialize mesh.
-		bunny = make_shared<Shape>();
-		bunny->loadMesh(resourceDirectory + "/bunny.obj");
-		bunny->resize();
-		bunny->init();
+	void genericInit(shared_ptr<Shape> *shape, string mesh) {
+        string resourceDirectory = "../resources" ;
+        // Initialize mesh.
+        (*shape) = make_shared<Shape>();
+        (*shape)->loadMesh(resourceDirectory + "/" + mesh);
+        (*shape)->resize();
+        (*shape)->init();
 	}
 
 	void initShip() {
@@ -516,16 +498,6 @@ public:
 		ship->resize();
 		ship->init();
 	}
-
-	void initTeapot() {
-		string resourceDirectory = "../resources" ;
-		// Initialize mesh.
-		teapot = make_shared<Shape>();
-		teapot->loadMesh(resourceDirectory + "/teapot.obj");
-		teapot->resize();
-		teapot->init();
-	}
-
 
 	/****DRAW
 	This is the most important function in your program - this is where you
@@ -631,7 +603,7 @@ public:
 		
 		prog->unbind();
 
-		M = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
+		M = glm::scale(glm::mat4(1.0f), glm::vec3(5,5,5)) * glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
         pPlanet->bind();
 		//send the matrices to the shaders
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
@@ -641,6 +613,30 @@ public:
 
 		bunny->draw(pPlanet, false, false);
         pPlanet->unbind();
+
+        M = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
+        pPlanet->bind();
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
+
+        bunny->draw(pPlanet, false, false);
+        pPlanet->unbind();
+
+        M = glm::translate(glm::mat4(1.0f), glm::vec3(130.0f, 0.0f, 240.0f)) *  glm::scale(glm::mat4(1.0f), glm::vec3(30,30,30));
+        pPlanet->bind();
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
+
+        teapot->draw(pPlanet, false, false);
+        pPlanet->unbind();
+
+
 
         // Tip rate calculation
         static float tiprate = 0;
@@ -675,6 +671,100 @@ public:
         pShip->unbind();
 	}
 
+	// TODO: Scaling is messed up now
+	void renderMidtermArm() {
+        double frametime = get_last_elapsed_time();
+
+        // Get current frame buffer size.
+        int width, height;
+        glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+        float aspect = width/(float)height;
+
+        // Create the matrix stacks - please leave these alone for now
+
+        glm::mat4 V, M, P; //View, Model and Perspective matrix
+        V = mycam.process(frametime);
+        M = glm::mat4(1);
+        // Apply orthographic projection....
+        P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);
+        if (width < height)
+        {
+            P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
+        }
+        // ...but we overwrite it (optional) with a perspective projection.
+        P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
+
+        //animation with the model matrix:
+        static float w = 0.0;
+        w += 0.01;//rotation angle
+        glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f)); //glm::rotate(glm::mat4(1.0f), 0.25f, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.7f, -3));
+        glm::mat4 bodyScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f,0.3f,0.3f));
+        M = TransZ * bodyScale * RotateX;
+
+        // Draw the box using GLSL.
+        pPlanet->bind();
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+        float rotFactor;
+
+        rotFactor = sinf(w);
+
+        // Limb 1
+        glm::mat4 armTransZ1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+        glm::mat4 Scale1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.5f,0.1f));
+        glm::mat4 RotateX1 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        M = (TransZ * RotateX) * RotateX1 * armTransZ1 * Scale1;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+
+        rotFactor = sinf(w * 3);
+
+        // Limb 2
+        glm::mat4 armTransZ2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.15f, 0));
+        glm::mat4 RotateX2 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 armTransX2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+
+
+        M = (TransZ * RotateX   * RotateX1 * armTransZ1) * armTransZ2 * RotateX2 * armTransX2 * Scale1 ;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+        rotFactor = sinf(w*6);
+
+        // Limb 3
+        glm::mat4 armTransZ3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0));
+        glm::mat4 RotateX3 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 armTransX3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+
+
+        M = (TransZ * RotateX  * RotateX1 * armTransZ1   * armTransZ2 * RotateX2) * armTransZ3  * RotateX3 * armTransX3 * Scale1;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+
+        glBindVertexArray(0);
+
+        pPlanet->unbind();
+	}
+
 };
 //******************************************************************************************
 int main(int argc, char **argv)
@@ -699,10 +789,9 @@ int main(int argc, char **argv)
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
-	application->initCube();
-	application->initBunny();
-	application->initTeapot();
-	//application->initPlanet();
+	application->genericInit(&bunny, "bunny.obj");
+	application->genericInit(&cube, "cube.obj");
+	application->genericInit(&teapot, "teapot.obj");
 	application->initShip();
 
 	// Loop until the user closes the window.
@@ -710,6 +799,7 @@ int main(int argc, char **argv)
 	{
 		// Render scene.
 		application->render();
+		application->renderMidtermArm();
 
 		// Swap front and back buffers.
 		glfwSwapBuffers(windowManager->getHandle());
