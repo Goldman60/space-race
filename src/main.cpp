@@ -499,6 +499,109 @@ public:
 		ship->init();
 	}
 
+	void drawBunny(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+        M = glm::scale(glm::mat4(1.0f), scale) * glm::translate(glm::mat4(1.0f), pos);
+        pPlanet->bind();
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
+
+        bunny->draw(pPlanet, false, false);
+        pPlanet->unbind();
+	}
+
+    // TODO: Scaling is messed up now
+    void drawMidtermArm(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+        //animation with the model matrix:
+        static float w = 0.0;
+        w += 0.01;//rotation angle
+        glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f)); //glm::rotate(glm::mat4(1.0f), 0.25f, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), pos);
+        glm::mat4 bodyScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f,0.3f,0.3f));
+        M = TransZ * bodyScale * RotateX;
+
+        // Draw the box using GLSL.
+        pPlanet->bind();
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+        float rotFactor;
+
+        rotFactor = sinf(w);
+
+        // Limb 1
+        glm::mat4 armTransZ1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+        glm::mat4 Scale1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.5f,0.1f));
+        glm::mat4 RotateX1 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        M = (TransZ * RotateX) * RotateX1 * armTransZ1 * Scale1;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+
+        rotFactor = sinf(w * 3);
+
+        // Limb 2
+        glm::mat4 armTransZ2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.15f, 0));
+        glm::mat4 RotateX2 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 armTransX2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+
+
+        M = (TransZ * RotateX   * RotateX1 * armTransZ1) * armTransZ2 * RotateX2 * armTransX2 * Scale1 ;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+        rotFactor = sinf(w*6);
+
+        // Limb 3
+        glm::mat4 armTransZ3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0));
+        glm::mat4 RotateX3 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 armTransX3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
+
+
+        M = (TransZ * RotateX  * RotateX1 * armTransZ1   * armTransZ2 * RotateX2) * armTransZ3  * RotateX3 * armTransX3 * Scale1;
+
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+
+        cube->draw(pPlanet, false, false);
+
+
+        glBindVertexArray(0);
+
+        pPlanet->unbind();
+    }
+
+    void drawTeapot(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+        M = glm::translate(glm::mat4(1.0f), pos) *  glm::scale(glm::mat4(1.0f), scale);
+        pPlanet->bind();
+        //send the matrices to the shaders
+        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
+
+        teapot->draw(pPlanet, false, false);
+        pPlanet->unbind();
+    }
+
+	void drawBender(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+
+	}
+
 	/****DRAW
 	This is the most important function in your program - this is where you
 	will actually issue the commands to draw any geometry you have set up to
@@ -570,18 +673,15 @@ public:
 
 		M =  TransZ * RotateY * RotateX * S;
 
-		// Draw the box using GLSL.
+		// Draw the Target billboards
 		prog->bind();
 
-		
 		//send the matrices to the shaders
 		glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
 
-		
-	
 		glBindVertexArray(VertexArrayID);
 		//actually draw from vertex 0, 3 vertices
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
@@ -595,48 +695,15 @@ public:
 		M = TransZ * S* Vi;
 		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		
-		glDisable(GL_DEPTH_TEST);
 		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0, RING_COUNT);
-		glEnable(GL_DEPTH_TEST);
 		glBindVertexArray(0);
-
-		
 		prog->unbind();
 
-		M = glm::scale(glm::mat4(1.0f), glm::vec3(5,5,5)) * glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
-        pPlanet->bind();
-		//send the matrices to the shaders
-		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
 
-		bunny->draw(pPlanet, false, false);
-        pPlanet->unbind();
-
-        M = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 10.0f));
-        pPlanet->bind();
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
-
-        bunny->draw(pPlanet, false, false);
-        pPlanet->unbind();
-
-        M = glm::translate(glm::mat4(1.0f), glm::vec3(130.0f, 0.0f, 240.0f)) *  glm::scale(glm::mat4(1.0f), glm::vec3(30,30,30));
-        pPlanet->bind();
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-        glUniform3fv(pPlanet->getUniform("campos"), 1, &mycam.pos[0]);
-
-        teapot->draw(pPlanet, false, false);
-        pPlanet->unbind();
-
-
+		drawBunny(vec3(5, 0, 10), vec3(), vec3(5, 5, 5), frametime, V, M, P);
+        drawBunny(vec3(10, 0, -6), vec3(), vec3(20, 20, 20), frametime, V, M, P);
+        drawTeapot(vec3(130.0f, 0.0f, 240.0f), vec3(), vec3(30,30,30), frametime, V, M, P);
+        drawMidtermArm(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
 
         // Tip rate calculation
         static float tiprate = 0;
@@ -670,101 +737,6 @@ public:
 		ship->draw(pShip, false, false);
         pShip->unbind();
 	}
-
-	// TODO: Scaling is messed up now
-	void renderMidtermArm() {
-        double frametime = get_last_elapsed_time();
-
-        // Get current frame buffer size.
-        int width, height;
-        glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-        float aspect = width/(float)height;
-
-        // Create the matrix stacks - please leave these alone for now
-
-        glm::mat4 V, M, P; //View, Model and Perspective matrix
-        V = mycam.process(frametime);
-        M = glm::mat4(1);
-        // Apply orthographic projection....
-        P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);
-        if (width < height)
-        {
-            P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
-        }
-        // ...but we overwrite it (optional) with a perspective projection.
-        P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
-
-        //animation with the model matrix:
-        static float w = 0.0;
-        w += 0.01;//rotation angle
-        glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f)); //glm::rotate(glm::mat4(1.0f), 0.25f, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.7f, -3));
-        glm::mat4 bodyScale = glm::scale(glm::mat4(1.0f), glm::vec3(0.3f,0.3f,0.3f));
-        M = TransZ * bodyScale * RotateX;
-
-        // Draw the box using GLSL.
-        pPlanet->bind();
-
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-
-        cube->draw(pPlanet, false, false);
-
-        float rotFactor;
-
-        rotFactor = sinf(w);
-
-        // Limb 1
-        glm::mat4 armTransZ1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
-        glm::mat4 Scale1 = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.5f,0.1f));
-        glm::mat4 RotateX1 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
-
-        M = (TransZ * RotateX) * RotateX1 * armTransZ1 * Scale1;
-
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-
-        cube->draw(pPlanet, false, false);
-
-
-        rotFactor = sinf(w * 3);
-
-        // Limb 2
-        glm::mat4 armTransZ2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.15f, 0));
-        glm::mat4 RotateX2 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 armTransX2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
-
-
-        M = (TransZ * RotateX   * RotateX1 * armTransZ1) * armTransZ2 * RotateX2 * armTransX2 * Scale1 ;
-
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-
-        cube->draw(pPlanet, false, false);
-
-        rotFactor = sinf(w*6);
-
-        // Limb 3
-        glm::mat4 armTransZ3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0));
-        glm::mat4 RotateX3 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 armTransX3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
-
-
-        M = (TransZ * RotateX  * RotateX1 * armTransZ1   * armTransZ2 * RotateX2) * armTransZ3  * RotateX3 * armTransX3 * Scale1;
-
-        //send the matrices to the shaders
-        glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-
-        cube->draw(pPlanet, false, false);
-
-
-        glBindVertexArray(0);
-
-        pPlanet->unbind();
-	}
-
 };
 //******************************************************************************************
 int main(int argc, char **argv)
@@ -799,7 +771,6 @@ int main(int argc, char **argv)
 	{
 		// Render scene.
 		application->render();
-		application->renderMidtermArm();
 
 		// Swap front and back buffers.
 		glfwSwapBuffers(windowManager->getHandle());
