@@ -277,7 +277,7 @@ public:
 			// Make it instanced
 			glVertexAttribDivisor(position_loc + i, 1);
 		}
-		
+
 		glBindVertexArray(0);
 
 		int width, height, channels;
