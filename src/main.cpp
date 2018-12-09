@@ -26,6 +26,11 @@ shared_ptr<Shape> ship;
 shared_ptr<Shape> t800;
 
 #define RING_COUNT 200
+#define TRIANGLE_COUNT 80
+
+#ifndef M_PI
+#define M_PI 3.14159f
+#endif
 
 
 double get_last_elapsed_time()
@@ -102,7 +107,7 @@ public:
 	GLuint VertexArrayID;
 
 	// Data necessary to give our box to OpenGL
-	GLuint VertexBufferID, VertexNormDBox, VertexTexBox, IndexBufferIDBox, InstanceBuffer;
+	GLuint VertexBufferID, VertexNormDBox, VertexTexBox, IndexBufferIDBox, InstanceBuffer, NormalBufferCyl, VertexBufferCyl, NormalBufferIDCyl, VertexBufferIDCyl, IndexBufferCyl, VertexArrayIDCyl;
 
 	//texture data
 	GLuint Texture;
@@ -319,6 +324,198 @@ public:
 		glUniform1i(Tex1Location, 0);
 		glUniform1i(Tex2Location, 1);
 
+	}
+
+	void initCylinder() {
+		// **** Cylinder ******
+		//generate the VAO
+		glGenVertexArrays(1, &VertexArrayIDCyl);
+		glBindVertexArray(VertexArrayIDCyl);
+
+		//generate vertex buffer to hand off to OGL
+		glGenBuffers(1, &VertexBufferIDCyl);
+		//set the current state to focus on our vertex buffer
+		glBindBuffer(GL_ARRAY_BUFFER, VertexBufferIDCyl);
+
+		// Slap the extra 3 on for 0,0,0
+		static GLfloat g_vertex_buffer_data[(TRIANGLE_COUNT * 3 * 2) + 6];
+
+		// Fill vertex buffer
+		//Fill Top
+		for (int i = 0; i < TRIANGLE_COUNT / 2; i++) {
+			g_vertex_buffer_data[i * 3] = 0.95f * cosf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 1] = 0.95f * sinf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 2] = 1.0f; // Every other vertex scale note
+		}
+
+
+		// Bottom plate verticies
+		for (int i = (TRIANGLE_COUNT / 2); i < TRIANGLE_COUNT; i++) {
+			g_vertex_buffer_data[i * 3] = 0.95f * cosf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 1] = 0.95f * sinf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 2] = -1.0f; // Every other vertex scale note
+		}
+
+		// Put in 0,0,1 in the vertex buffer
+		g_vertex_buffer_data[TRIANGLE_COUNT * 3] = 0.0f;
+		g_vertex_buffer_data[(TRIANGLE_COUNT * 3) + 1] = 0.0f;
+		g_vertex_buffer_data[(TRIANGLE_COUNT * 3) + 2] = 1.0f;
+
+		// Put in 0,0,-1 in the vertex buffer
+		g_vertex_buffer_data[(TRIANGLE_COUNT * 3) + 3] = 0.0f;
+		g_vertex_buffer_data[(TRIANGLE_COUNT * 3) + 4] = 0.0f;
+		g_vertex_buffer_data[(TRIANGLE_COUNT * 3) + 5] = -1.0f;
+
+		for (int i = TRIANGLE_COUNT + 2; i < (TRIANGLE_COUNT + 2) + (TRIANGLE_COUNT / 2); i++) {
+			g_vertex_buffer_data[i * 3] = 0.95f * cosf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 1] = 0.95f * sinf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 2] = 1.0f; // Every other vertex scale note
+		}
+
+		for (int i = (TRIANGLE_COUNT + 2) + (TRIANGLE_COUNT / 2); i < (TRIANGLE_COUNT + 2) + TRIANGLE_COUNT; i++) {
+			g_vertex_buffer_data[i * 3] = 0.95f * cosf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 1] = 0.95f * sinf(2 * (float)M_PI * ((float)i / (float)(TRIANGLE_COUNT / 2)));
+			g_vertex_buffer_data[(i * 3) + 2] = -1.0f; // Every other vertex scale note
+		}
+
+		//actually memcopy the data - only do this once
+		glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_DYNAMIC_DRAW);
+
+		//we need to set up the vertex array
+		glEnableVertexAttribArray(0);
+
+		//key function to get up how many elements to pull out at a time (3)
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+
+
+		//****************** Index for sun ********************
+		//generate vertex buffer to hand off to OGL
+		glGenBuffers(1, &IndexBufferCyl);
+		//set the current state to focus on our vertex buffer
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+
+		static GLuint g_index_buffer_data[(TRIANGLE_COUNT * 3) * 2];
+
+		// Connect top plate
+		for (GLuint i = 0; i < TRIANGLE_COUNT / 2; i++) {
+			g_index_buffer_data[i * 3] = i;
+
+			if (i + 1 == TRIANGLE_COUNT / 2) {
+				g_index_buffer_data[(i * 3) + 1] = 0;
+			}
+			else {
+				g_index_buffer_data[(i * 3) + 1] = i + 1;
+			}
+			g_index_buffer_data[(i * 3) + 2] = TRIANGLE_COUNT;
+		}
+
+		// Connect bottom plate
+		for (GLuint i = TRIANGLE_COUNT / 2; i < TRIANGLE_COUNT; i++) {
+			g_index_buffer_data[i * 3] = i;
+
+			if (i + 1 == TRIANGLE_COUNT) {
+				g_index_buffer_data[(i * 3) + 1] = TRIANGLE_COUNT / 2;
+			}
+			else {
+				g_index_buffer_data[(i * 3) + 1] = i + 1;
+			}
+			g_index_buffer_data[(i * 3) + 2] = TRIANGLE_COUNT + 1;
+		}
+
+		for (GLuint i = TRIANGLE_COUNT; i < TRIANGLE_COUNT + (TRIANGLE_COUNT / 2); i++) {
+			g_index_buffer_data[i * 3] = i + 2;
+
+			if (i + 1 == TRIANGLE_COUNT + (TRIANGLE_COUNT / 2)) {
+				g_index_buffer_data[(i * 3) + 1] = 2 + TRIANGLE_COUNT;
+			}
+			else {
+				g_index_buffer_data[(i * 3) + 1] = i + 3;
+			}
+
+			g_index_buffer_data[(i * 3) + 2] = i + 2 + (TRIANGLE_COUNT / 2);
+
+		}
+
+		for (GLuint i = TRIANGLE_COUNT + (TRIANGLE_COUNT / 2); i < TRIANGLE_COUNT * 2; i++) {
+			g_index_buffer_data[i * 3] = i + 2;
+
+			if (i + 1 == TRIANGLE_COUNT * 2) {
+				g_index_buffer_data[(i * 3) + 1] = 2 + TRIANGLE_COUNT + (TRIANGLE_COUNT / 2);
+				g_index_buffer_data[(i * 3) + 2] = TRIANGLE_COUNT + 2;
+
+			}
+			else {
+				g_index_buffer_data[(i * 3) + 1] = i + 3;
+				g_index_buffer_data[(i * 3) + 2] = i + 2 - ((TRIANGLE_COUNT / 2) - 1);
+			}
+
+		}
+
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_index_buffer_data), g_index_buffer_data, GL_DYNAMIC_DRAW);
+
+		//****************** Normals for Cylinder
+
+		static GLfloat g_vertex_normal_data[(TRIANGLE_COUNT * 3 * 2) + 6];
+
+		// Top Plate
+		for (unsigned i = 0; i < TRIANGLE_COUNT / 2; i++) {
+			g_vertex_normal_data[(i * 3)] = 0;
+			g_vertex_normal_data[(i * 3) + 1] = 0;
+			g_vertex_normal_data[(i * 3) + 2] = 1.0f;
+		}
+
+		// Bottom Plate
+		for (unsigned i = TRIANGLE_COUNT / 2; i < TRIANGLE_COUNT; i++) {
+			g_vertex_normal_data[(i * 3)] = 0;
+			g_vertex_normal_data[(i * 3) + 1] = 0;
+			g_vertex_normal_data[(i * 3) + 2] = -1.0f;
+		}
+
+		// Top plate
+		g_vertex_normal_data[TRIANGLE_COUNT * 3] = 0;
+		g_vertex_normal_data[TRIANGLE_COUNT * 3 + 1] = 0;
+		g_vertex_normal_data[TRIANGLE_COUNT * 3 + 2] = 1.0f;
+
+		// Bottom plate
+		g_vertex_normal_data[TRIANGLE_COUNT * 3 + 3] = 0;
+		g_vertex_normal_data[TRIANGLE_COUNT * 3 + 4] = 0;
+		g_vertex_normal_data[TRIANGLE_COUNT * 3 + 5] = -1.0f;
+
+		// Edges
+		for (unsigned i = TRIANGLE_COUNT; i < TRIANGLE_COUNT + TRIANGLE_COUNT / 2; i++) {
+			vec3 vertexA, vertexB, vertexC, v, u, normal;
+
+			vertexA.x = g_vertex_buffer_data[(g_index_buffer_data[i * 3]) * 3];
+			vertexA.y = g_vertex_buffer_data[(g_index_buffer_data[i * 3]) * 3 + 1];
+			vertexA.z = g_vertex_buffer_data[(g_index_buffer_data[i * 3]) * 3 + 2];
+
+			vertexB.x = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 1]) * 3];
+			vertexB.y = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 1]) * 3 + 1];
+			vertexB.z = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 1]) * 3 + 2];
+
+			vertexC.x = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 2]) * 3];
+			vertexC.y = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 2]) * 3 + 1];
+			vertexC.z = g_vertex_buffer_data[(g_index_buffer_data[i * 3 + 2]) * 3 + 2];
+
+			v = vertexB - vertexA;
+			u = vertexC - vertexA;
+
+			normal = cross(u, v);
+
+			g_vertex_normal_data[(i + 2) * 3] = normal.x;
+			g_vertex_normal_data[(i + 2) * 3 + 1] = normal.y;
+			g_vertex_normal_data[(i + 2) * 3 + 2] = normal.z;
+		}
+
+		glGenBuffers(1, &NormalBufferCyl);
+		//set the current state to focus on our vertex buffer
+		glBindBuffer(GL_ARRAY_BUFFER, NormalBufferCyl);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_normal_data), g_vertex_normal_data, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+		glBindVertexArray(0);
 	}
 
 	//General OGL initialization - set OGL state here
@@ -599,7 +796,303 @@ public:
     }
 
 	void drawBender(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+		static float w = 0;
+		static float m = 0;
 
+		m += 0.02f;
+		float animFactorL = cos(m) + 0.7f;
+		float animFactorR = sin(m) + 0.7f;
+		float animFactor2 = cos(m * 2) + 0.7f;
+
+		mat4 globRotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+		// ********* Draw Base
+
+		pPlanet->bind();
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		mat4 baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.6f, 0));
+		mat4 baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		mat4 baseScale = glm::scale(glm::mat4(1), glm::vec3(4.0f, 4.0f, 0.4f));
+
+		M = globRotate * baseTranslate * baseRotate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Head tube
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.0f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.6f, 0.6f, 1.0f));
+
+		M = globRotate * baseRotate * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Antenna
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -2.5f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.3f));
+
+		M = globRotate * baseRotate * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Body
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1.0f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(1.2f, 1.2f, 1.5f));
+
+		M = globRotate * baseRotate * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Leg 1
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.6f, 3.2f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.3f, 0.3f, 1.0f));
+
+		M = globRotate * baseRotate * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Leg 2
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.6f, 3.2f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
+
+		M = globRotate * baseRotate * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Arm L 1
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.2f, 0.2f, 0.7f));
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.3f, 0.3f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		mat4 animRot = glm::rotate(glm::mat4(1), animFactorL, glm::vec3(0, 0.5f, 0));
+
+		M = globRotate * baseRotate * animRot * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Arm L2
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		mat4 base2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.7f));
+		mat4 baseA2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.6f));
+		mat4 base2Rotate = glm::rotate(glm::mat4(1), animFactor2, glm::vec3(0, 0.5f, 0.0f));
+
+		M = globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Arm R 1
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.2f, 0.2f, 0.7f));
+		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 1.3f, 0.3f));
+		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		animRot = glm::rotate(glm::mat4(1), animFactorR, glm::vec3(0, 0.5f, 0));
+
+		M = globRotate * baseRotate * animRot * baseTranslate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+
+		// Arm R2
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+
+		base2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.7f));
+		baseA2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.6f));
+		base2Rotate = glm::rotate(glm::mat4(1), animFactor2, glm::vec3(0, 0.5f, 0.0f));
+
+		M = globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glBindVertexArray(VertexArrayIDCyl);
+		//Bind the index buffer for the triangles
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferCyl);
+		//actually draw from vertex 0, 3 vertices
+		glDrawElements(GL_TRIANGLES, TRIANGLE_COUNT * 3 * 2, GL_UNSIGNED_INT, (void *)0);
+
+		glBindVertexArray(0);
+		pPlanet->unbind();
+
+		// L foot cap
+		pPlanet->bind();
+
+		mat4 scaleFoot = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+		mat4 transFoot = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.3f, 0.6f));
+
+		M = globRotate * transFoot * scaleFoot;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// R foot cap
+		pPlanet->bind();
+
+		scaleFoot = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+		transFoot = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.3f, -0.6f));
+
+		M = globRotate * transFoot * scaleFoot;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// Head Cap
+		pPlanet->bind();
+
+		mat4 scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.569f, 0.6f, 0.569f));
+		mat4 transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0, 1.8f, 0));
+
+		M = globRotate * transHead * scaleHead;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// Antenna topper
+		pPlanet->bind();
+
+		mat4 scaleAntTop = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
+		mat4 transAntTop = glm::translate(glm::mat4(1.0f), glm::vec3(0, 2.8f, 0));
+
+		M = globRotate * transAntTop * scaleAntTop;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// Eye 1
+		pPlanet->bind();
+
+		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
+		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.7f, 0.15f));
+
+		M = globRotate * transHead * scaleHead;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// Eye 2
+		pPlanet->bind();
+
+		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
+		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.7f, -0.15f));
+
+		M = globRotate * transHead * scaleHead;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		//Mouth
+		pPlanet->bind();
+
+		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.5f));
+		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.1f, 0));
+
+		M = globRotate * transHead * scaleHead;
+		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		sphere->draw(pPlanet, false, false);
+		pPlanet->unbind();
+
+		// **** Draw Globe
+		/*
+		globeprog->bind();
+
+		M = glm::scale(glm::mat4(1.0f), glm::vec3(5, 5, 5));
+		glUniformMatrix4fv(globeprog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(globeprog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(globeprog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		shape.draw(globeprog);
+		globeprog->unbind();
+		*/
 	}
 
 	/****DRAW
@@ -704,6 +1197,7 @@ public:
         drawBunny(vec3(10, 0, -6), vec3(), vec3(20, 20, 20), frametime, V, M, P);
         drawTeapot(vec3(130.0f, 0.0f, 240.0f), vec3(), vec3(30,30,30), frametime, V, M, P);
         drawMidtermArm(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
+        drawBender(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
 
         // Tip rate calculation
         static float tiprate = 0;
@@ -761,6 +1255,7 @@ int main(int argc, char **argv)
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
+	application->initCylinder();
 	application->genericInit(&bunny, "bunny.obj");
 	application->genericInit(&cube, "cube.obj");
 	application->genericInit(&teapot, "teapot.obj");
