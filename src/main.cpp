@@ -28,6 +28,7 @@ shared_ptr<Shape> earth;
 
 #define RING_COUNT 200
 #define TRIANGLE_COUNT 40
+#define INTENSE_COUNT 15
 
 #ifndef M_PI
 #define M_PI 3.14159f
@@ -102,7 +103,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog, psky, pShip, pPlanet, globeprog, pEarth;
+	std::shared_ptr<Program> prog, psky, pShip, pPlanet, globeprog, pEarth, pFont;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -117,6 +118,7 @@ public:
 	GLuint PlanetTex1;
 	GLuint PlanetTex2;
 	GLuint PlanetTex3;
+	GLuint TextureFont;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -180,6 +182,7 @@ public:
 	glm::vec4 *ringPositions = new glm::vec4[RING_COUNT];
 	int *ringX = new int[RING_COUNT];
 	int *ringZ = new int[RING_COUNT];
+	short *ringHit = new short[RING_COUNT];
 
 	void initGeom()
 	{
@@ -285,6 +288,8 @@ public:
 			glEnableVertexAttribArray(position_loc + i);
 			// Make it instanced
 			glVertexAttribDivisor(position_loc + i, 1);
+
+			ringHit[i] = 0;
 		}
 
 		glBindVertexArray(0);
@@ -630,6 +635,23 @@ public:
 		pEarth->addAttribute("vertPos");
 		pEarth->addAttribute("vertNor");
 		pEarth->addAttribute("vertTex");
+
+		// Initialize the GLSL program.
+		pFont = std::make_shared<Program>();
+		pFont->setVerbose(true);
+		pFont->setShaderNames(resourceDirectory + "/font_vertex.glsl", resourceDirectory + "/font_fragment.glsl");
+		if (!pFont->init())
+		{
+			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			exit(1); //make a breakpoint here and check the output window for the error message!
+		}
+		pFont->addUniform("P");
+		pFont->addUniform("V");
+		pFont->addUniform("M");
+		pFont->addUniform("campos");
+		pFont->addAttribute("vertPos");
+		pFont->addAttribute("vertNor");
+		pFont->addAttribute("vertTex");
 	}
 
 	/**
@@ -709,10 +731,29 @@ public:
 	}
 
 	void initFont() {
+		string resourceDirectory = "../resources";
+		int width, height, channels;
+		char filepath[1000];
 
+		string str = resourceDirectory + "/ExportedFont.bmp";
+		strcpy(filepath, str.c_str());
+		unsigned char *data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &TextureFont);
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, TextureFont);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		GLuint FontLocation = glGetUniformLocation(pFont->pid, "tex");
+		// Then bind the uniform samplers to texture units:
+		glUseProgram(pFont->pid);
+		glUniform1i(FontLocation, 6);
 	}
 
-#define INTENSE_COUNT 15
 	glm::vec3 *bunnyPositions = new glm::vec3[RING_COUNT];
 	glm::vec3 *teapotPositions = new glm::vec3[RING_COUNT];
 	glm::vec3 *benderPositions = new glm::vec3[INTENSE_COUNT];
@@ -1232,13 +1273,14 @@ public:
 		glm::mat4 SSky = glm::scale(glm::mat4(1.0f), glm::vec3(0.8f, 0.8f, 0.8f));
 
 		for (int i = 0; i < RING_COUNT; i++) {
-			if (glm::distance(-vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) <= 5 &&
+			if (!ringHit[i] && glm::distance(-vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) <= 5 &&
 				glm::distance(-vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) >= -5) {
 				score++;
 
+				ringHit[i] = 1;
+
 				printf("HIT HIT HIT\n");
 				printf("%d %d %d\n", ringX[i], 0, ringZ[i]);
-				printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
 			}
 		}
 
@@ -1342,6 +1384,41 @@ public:
 		glUniform3fv(pShip->getUniform("campos"), 1, &mycam.pos[0]);
 		ship->draw(pShip, false, false);
         pShip->unbind();
+
+		/* Scoreboard */
+		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(-0.6f, 0.40f, -1.8f)) 
+			* glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 0.15f, 0.15f));
+		pFont->bind();
+		//send the matrices to the shaders
+		glUniformMatrix4fv(pFont->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pFont->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pFont->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pFont->getUniform("campos"), 1, &mycam.pos[0]);
+		glBindVertexArray(VertexArrayID);
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, TextureFont);
+		glDisable(GL_DEPTH_TEST);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void *)0);
+		glEnable(GL_DEPTH_TEST);
+		glBindVertexArray(0);
+		pFont->unbind();
+
+		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(-0.72f, 0.40f, -1.8f))
+			* glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 0.15f, 0.15f));
+		pFont->bind();
+		//send the matrices to the shaders
+		glUniformMatrix4fv(pFont->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pFont->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pFont->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pFont->getUniform("campos"), 1, &mycam.pos[0]);
+		glBindVertexArray(VertexArrayID);
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, TextureFont);
+		glDisable(GL_DEPTH_TEST);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void *)0);
+		glEnable(GL_DEPTH_TEST);
+		glBindVertexArray(0);
+		pFont->unbind();
 	}
 };
 //******************************************************************************************
@@ -1374,6 +1451,7 @@ int main(int argc, char **argv)
 	application->initShip();
 	application->initPlanet();
 	application->initPositions();
+	application->initFont();
 
 	// Loop until the user closes the window.
 	while(! glfwWindowShouldClose(windowManager->getHandle()))

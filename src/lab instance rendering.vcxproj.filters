@@ -37,5 +37,7 @@
     <None Include="..\resources\shipvertex.glsl" />
     <None Include="..\resources\earth_fragment.glsl" />
     <None Include="..\resources\earth_vertex.glsl" />
+    <None Include="..\resources\font_fragment.glsl" />
+    <None Include="..\resources\font_vertex.glsl" />
   </ItemGroup>
 </Project>
