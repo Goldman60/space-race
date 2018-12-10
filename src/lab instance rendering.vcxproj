@@ -38,8 +38,12 @@
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\resources\globe_fragment.glsl" />
+    <None Include="..\resources\globe_vertex.glsl" />
     <None Include="..\resources\shader_fragment.glsl" />
     <None Include="..\resources\shader_vertex.glsl" />
+    <None Include="..\resources\shipfrag.glsl" />
+    <None Include="..\resources\shipvertex.glsl" />
     <None Include="..\resources\skyfrag.glsl" />
     <None Include="..\resources\skyvertex.glsl" />
   </ItemGroup>

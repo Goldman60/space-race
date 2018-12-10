@@ -101,7 +101,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog, psky, pShip, pPlanet;
+	std::shared_ptr<Program> prog, psky, pShip, pPlanet, globeprog;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -261,7 +261,7 @@ public:
 		glGenBuffers(1, &InstanceBuffer);
 		//set the current state to focus on our vertex buffer
 		glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer);
-		glm::vec4 *positions = new glm::vec4[500];
+		glm::vec4 *positions = new glm::vec4[RING_COUNT];
 		for (int i = 0; i < RING_COUNT; i++) {
 			int randx = (rand() % 1000) - 500;
 			int randz = (rand() % 1000) - 500;
@@ -593,6 +593,21 @@ public:
         pPlanet->addAttribute("vertPos");
         pPlanet->addAttribute("vertNor");
         pPlanet->addAttribute("vertTex");
+
+		// Initialize the GLSL program.
+		globeprog = std::make_shared<Program>();
+		globeprog->setVerbose(true);
+		globeprog->setShaderNames(resourceDirectory + "/globe_vertex.glsl", resourceDirectory + "/globe_fragment.glsl");
+		if (!globeprog->init())
+		{
+			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			exit(1); //make a breakpoint here and check the output window for the error message!
+		}
+		globeprog->addUniform("P");
+		globeprog->addUniform("V");
+		globeprog->addUniform("M");
+		globeprog->addAttribute("vertPos");
+		globeprog->addAttribute("vertNor");
 	}
 
 	/**
@@ -602,7 +617,6 @@ public:
 		string resourceDirectory = "../resources" ;
 		// Initialize mesh.
 		planet = make_shared<Shape>();
-		//shape->loadMesh(resourceDirectory + "/t800.obj");
 		planet->loadMesh(resourceDirectory + "/sphere.obj");
 		planet->resize();
 		planet->init();
@@ -798,6 +812,7 @@ public:
 	void drawBender(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
 		static float w = 0;
 		static float m = 0;
+		static unsigned score = 0;
 
 		m += 0.02f;
 		float animFactorL = cos(m) + 0.7f;
@@ -813,7 +828,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
-		mat4 baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.6f, 0));
+		mat4 baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -4.6f, 0.0f));
 		mat4 baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		mat4 baseScale = glm::scale(glm::mat4(1), glm::vec3(4.0f, 4.0f, 0.4f));
 
@@ -1083,16 +1098,14 @@ public:
 		pPlanet->unbind();
 
 		// **** Draw Globe
-		/*
 		globeprog->bind();
 
 		M = glm::scale(glm::mat4(1.0f), glm::vec3(5, 5, 5));
 		glUniformMatrix4fv(globeprog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(globeprog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(globeprog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		shape.draw(globeprog);
+		sphere->draw(globeprog, false, false);
 		globeprog->unbind();
-		*/
 	}
 
 	/****DRAW
@@ -1197,7 +1210,7 @@ public:
         drawBunny(vec3(10, 0, -6), vec3(), vec3(20, 20, 20), frametime, V, M, P);
         drawTeapot(vec3(130.0f, 0.0f, 240.0f), vec3(), vec3(30,30,30), frametime, V, M, P);
         drawMidtermArm(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
-        drawBender(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
+        drawBender(vec3(-30.0f, -4.6f, -4), vec3(), vec3(), frametime, V, M, P);
 
         // Tip rate calculation
         static float tiprate = 0;
