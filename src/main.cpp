@@ -649,6 +649,7 @@ public:
 		pFont->addUniform("V");
 		pFont->addUniform("M");
 		pFont->addUniform("campos");
+		pFont->addUniform("digit");
 		pFont->addAttribute("vertPos");
 		pFont->addAttribute("vertNor");
 		pFont->addAttribute("vertTex");
@@ -1239,7 +1240,7 @@ public:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		double frametime = get_last_elapsed_time();
 
-		static unsigned score = 0;
+		static int score = 0;
 
 		// Get current frame buffer size.
 		int width, height;
@@ -1387,13 +1388,14 @@ public:
 
 		/* Scoreboard */
 		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(-0.6f, 0.40f, -1.8f)) 
-			* glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 0.15f, 0.15f));
+			* glm::scale(glm::mat4(1.0f), glm::vec3(0.10f, 0.15f, 0.15f));
 		pFont->bind();
 		//send the matrices to the shaders
 		glUniformMatrix4fv(pFont->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pFont->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pFont->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniform3fv(pFont->getUniform("campos"), 1, &mycam.pos[0]);
+		glUniform1i(pFont->getUniform("digit"), score % 10);
 		glBindVertexArray(VertexArrayID);
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, TextureFont);
@@ -1404,13 +1406,14 @@ public:
 		pFont->unbind();
 
 		M = glm::translate(glm::mat4(1.0f), camp) * glm::rotate(glm::mat4(1), mycam.rot.y, glm::vec3(0, -1, 0)) * glm::translate(glm::mat4(1.0f), vec3(-0.72f, 0.40f, -1.8f))
-			* glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 0.15f, 0.15f));
+			* glm::scale(glm::mat4(1.0f), glm::vec3(0.10f, 0.15f, 0.15f));
 		pFont->bind();
 		//send the matrices to the shaders
 		glUniformMatrix4fv(pFont->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pFont->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pFont->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniform3fv(pFont->getUniform("campos"), 1, &mycam.pos[0]);
+		glUniform1i(pFont->getUniform("digit"), score / 10);
 		glBindVertexArray(VertexArrayID);
 		glActiveTexture(GL_TEXTURE6);
 		glBindTexture(GL_TEXTURE_2D, TextureFont);
