@@ -7,6 +7,7 @@ deploy:
   script:
     - rm -rf /www/ajfite.com/projects/csc471-finalproject/*
     - cp ProjectSite/index.html /www/ajfite.com/projects/csc471-finalproject/
+    - cp ProjectSite/*.png /www/ajfite.com/projects/csc471-finalproject/
 
   tags:
     - fremont
