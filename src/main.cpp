@@ -886,7 +886,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		mat4 baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -4.6f, 0.0f));
-		mat4 baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		mat4 baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		mat4 baseScale = glm::scale(glm::mat4(1), glm::vec3(4.0f, 4.0f, 0.4f));
 
 		M = globalTrans * globRotate * baseTranslate * baseRotate * baseScale;
@@ -904,7 +904,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.0f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.6f, 0.6f, 1.0f));
 
 		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
@@ -922,7 +922,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -2.5f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.3f));
 
 		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
@@ -940,7 +940,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1.0f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(1.2f, 1.2f, 1.5f));
 
 		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
@@ -958,7 +958,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.6f, 3.2f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.3f, 0.3f, 1.0f));
 
 		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
@@ -976,7 +976,7 @@ public:
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.6f, 3.2f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -994,7 +994,7 @@ public:
 
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.2f, 0.2f, 0.7f));
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.3f, 0.3f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		mat4 animRot = glm::rotate(glm::mat4(1), animFactorL, glm::vec3(0, 0.5f, 0));
 
 		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseScale;
@@ -1031,7 +1031,7 @@ public:
 
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.2f, 0.2f, 0.7f));
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 1.3f, 0.3f));
-		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
+		baseRotate = glm::rotate(glm::mat4(1), (float)(M_PI / 2.0f), glm::vec3(0.5f, 0.0f, 0.0f));
 		animRot = glm::rotate(glm::mat4(1), animFactorR, glm::vec3(0, 0.5f, 0));
 
 		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseScale;
@@ -1224,9 +1224,16 @@ public:
 		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width / (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 		float sangle = 3.1415926 / 2.;
 
+		//printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
+
+		glm::mat4 RotateXSky = glm::rotate(glm::mat4(1.0f), sangle, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::vec3 camp = -mycam.pos;
+		glm::mat4 TransSky = glm::translate(glm::mat4(1.0f), camp);
+		glm::mat4 SSky = glm::scale(glm::mat4(1.0f), glm::vec3(0.8f, 0.8f, 0.8f));
+
 		for (int i = 0; i < RING_COUNT; i++) {
-			if (glm::distance(vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) <= 100 &&
-				glm::distance(vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) >= -100) {
+			if (glm::distance(-vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) <= 5 &&
+				glm::distance(-vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) >= -5) {
 				score++;
 
 				printf("HIT HIT HIT\n");
@@ -1234,13 +1241,6 @@ public:
 				printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
 			}
 		}
-
-		//printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
-
-		glm::mat4 RotateXSky = glm::rotate(glm::mat4(1.0f), sangle, glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::vec3 camp = -mycam.pos;
-		glm::mat4 TransSky = glm::translate(glm::mat4(1.0f), camp);
-		glm::mat4 SSky = glm::scale(glm::mat4(1.0f), glm::vec3(0.8f, 0.8f, 0.8f));
 
 		M = TransSky * RotateXSky * SSky;
 
