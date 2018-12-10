@@ -24,9 +24,10 @@ shared_ptr<Shape> teapot;
 shared_ptr<Shape> bunny;
 shared_ptr<Shape> ship;
 shared_ptr<Shape> t800;
+shared_ptr<Shape> earth;
 
 #define RING_COUNT 200
-#define TRIANGLE_COUNT 80
+#define TRIANGLE_COUNT 40
 
 #ifndef M_PI
 #define M_PI 3.14159f
@@ -82,7 +83,7 @@ public:
 		else if(d==1)
 			yangle = 2*ftime;
 		rot.y += yangle;
-		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
+		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 0.5f, 0));
 		glm::vec4 dir = glm::vec4(0, 0, speed,1);
 		dir = dir*R;
 		pos += glm::vec3(dir.x, dir.y, dir.z);
@@ -101,7 +102,7 @@ public:
 	WindowManager * windowManager = nullptr;
 
 	// Our shader program
-	std::shared_ptr<Program> prog, psky, pShip, pPlanet, globeprog;
+	std::shared_ptr<Program> prog, psky, pShip, pPlanet, globeprog, pEarth;
 
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID;
@@ -176,6 +177,10 @@ public:
 
 	/*Note that any gl calls must always happen after a GL state is initialized */
 	/* Billboards and Skybox */
+	glm::vec4 *ringPositions = new glm::vec4[RING_COUNT];
+	int *ringX = new int[RING_COUNT];
+	int *ringZ = new int[RING_COUNT];
+
 	void initGeom()
 	{
 
@@ -261,14 +266,13 @@ public:
 		glGenBuffers(1, &InstanceBuffer);
 		//set the current state to focus on our vertex buffer
 		glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer);
-		glm::vec4 *positions = new glm::vec4[RING_COUNT];
 		for (int i = 0; i < RING_COUNT; i++) {
-			int randx = (rand() % 1000) - 500;
-			int randz = (rand() % 1000) - 500;
-			positions[i] = glm::vec4(randx, 0, randz, 0);
+			ringX[i] = (rand() % 10000) - 5000;
+			ringZ[i] = (rand() % 10000) - 5000;
+			ringPositions[i] = glm::vec4(ringX[i], 0, ringZ[i], 0);
 		}
 		//actually memcopy the data - only do this once
-		glBufferData(GL_ARRAY_BUFFER, 500 * sizeof(glm::vec4), positions, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, RING_COUNT * sizeof(glm::vec4), ringPositions, GL_STATIC_DRAW);
 		int position_loc = glGetAttribLocation(prog->pid, "InstancePos");
 		for (int i = 0; i < RING_COUNT; i++)
 		{
@@ -608,6 +612,24 @@ public:
 		globeprog->addUniform("M");
 		globeprog->addAttribute("vertPos");
 		globeprog->addAttribute("vertNor");
+		globeprog->addAttribute("vertTex");
+		
+		// Initialize the GLSL program.
+		pEarth = std::make_shared<Program>();
+		pEarth->setVerbose(true);
+		pEarth->setShaderNames(resourceDirectory + "/earth_vertex.glsl", resourceDirectory + "/earth_fragment.glsl");
+		if (!pEarth->init())
+		{
+			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			exit(1); //make a breakpoint here and check the output window for the error message!
+		}
+		pEarth->addUniform("P");
+		pEarth->addUniform("V");
+		pEarth->addUniform("M");
+		pEarth->addUniform("campos");
+		pEarth->addAttribute("vertPos");
+		pEarth->addAttribute("vertNor");
+		pEarth->addAttribute("vertTex");
 	}
 
 	/**
@@ -615,11 +637,6 @@ public:
 	 */
 	void initPlanet() {
 		string resourceDirectory = "../resources" ;
-		// Initialize mesh.
-		planet = make_shared<Shape>();
-		planet->loadMesh(resourceDirectory + "/sphere.obj");
-		planet->resize();
-		planet->init();
 
 		int width, height, channels;
 		char filepath[1000];
@@ -629,7 +646,7 @@ public:
 		strcpy(filepath, str.c_str());
 		unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &PlanetTex0);
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, PlanetTex0);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -642,7 +659,7 @@ public:
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &PlanetTex1);
-		glActiveTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, PlanetTex1);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -655,7 +672,7 @@ public:
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &PlanetTex2);
-		glActiveTexture(GL_TEXTURE2);
+		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, PlanetTex2);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -668,7 +685,7 @@ public:
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &PlanetTex3);
-		glActiveTexture(GL_TEXTURE3);
+		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, PlanetTex3);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -679,16 +696,54 @@ public:
 
 		//[FOURTEXTURES]
 		//set the 2 textures to the correct samplers in the fragment shader:
-		GLuint Tex1Location = glGetUniformLocation(psky->pid, "tex");//tex, tex2... sampler in the fragment shader
-		GLuint Tex2Location = glGetUniformLocation(psky->pid, "tex2");
-		GLuint Tex3Location = glGetUniformLocation(psky->pid, "tex3");
-		GLuint Tex4Location = glGetUniformLocation(psky->pid, "tex4");
+		GLuint Tex6Location = glGetUniformLocation(pEarth->pid, "tex6");//tex, tex2... sampler in the fragment shader
+		GLuint Tex7Location = glGetUniformLocation(pEarth->pid, "tex7");
+		GLuint Tex8Location = glGetUniformLocation(pEarth->pid, "tex8");
+		GLuint Tex9Location = glGetUniformLocation(pEarth->pid, "tex9");
 		// Then bind the uniform samplers to texture units:
-		glUseProgram(psky->pid);
-		glUniform1i(PlanetTex0, 0);
-		glUniform1i(PlanetTex0, 1);
-		glUniform1i(PlanetTex0, 2);
-		glUniform1i(PlanetTex0, 3);
+		glUseProgram(pEarth->pid);
+		glUniform1i(Tex6Location, 2);
+		glUniform1i(Tex7Location, 3);
+		glUniform1i(Tex8Location, 4);
+		glUniform1i(Tex9Location, 5);
+	}
+
+	void initFont() {
+
+	}
+
+#define INTENSE_COUNT 15
+	glm::vec3 *bunnyPositions = new glm::vec3[RING_COUNT];
+	glm::vec3 *teapotPositions = new glm::vec3[RING_COUNT];
+	glm::vec3 *benderPositions = new glm::vec3[INTENSE_COUNT];
+	glm::vec3 *midtermPositions = new glm::vec3[INTENSE_COUNT];
+
+	void initPositions() {
+		for (int i = 0; i < INTENSE_COUNT; i++) {
+			int randx = (rand() % 1000) - 500;
+			int randz = (rand() % 1000) - 500;
+			midtermPositions[i] = glm::vec3(randx, 0, randz);
+		}
+		
+		for (int i = 0; i < INTENSE_COUNT; i++) {
+			int randx = (rand() % 1000) - 500;
+			int randz = (rand() % 1000) - 500;
+			benderPositions[i] = glm::vec3(randx, 0, randz);
+		}
+
+		for (int i = 0; i < RING_COUNT; i++) {
+			int randx = (rand() % 1000) - 500;
+			int randz = (rand() % 1000) - 500;
+			bunnyPositions[i] = glm::vec3(randx, 0, randz);
+		}
+
+		for (int i = 0; i < RING_COUNT; i++) {
+			int randx = (rand() % 5000) - 2500;
+			int randz = (rand() % 5000) - 2500;
+			teapotPositions[i] = glm::vec3(randx, 0, randz);
+
+			printf("RING %d %d %d\n", ringX[i], 0, ringZ[i]);
+		}
 	}
 
 	void genericInit(shared_ptr<Shape> *shape, string mesh) {
@@ -763,7 +818,7 @@ public:
         rotFactor = sinf(w * 3);
 
         // Limb 2
-        glm::mat4 armTransZ2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.15f, 0));
+        glm::mat4 armTransZ2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0));
         glm::mat4 RotateX2 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
         glm::mat4 armTransX2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
 
@@ -778,7 +833,7 @@ public:
         rotFactor = sinf(w*6);
 
         // Limb 3
-        glm::mat4 armTransZ3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0));
+        glm::mat4 armTransZ3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.9f, 0));
         glm::mat4 RotateX3 = glm::rotate(glm::mat4(1.0f), rotFactor, glm::vec3(0.0f, 0.0f, 1.0f));
         glm::mat4 armTransX3 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.3f, 0));
 
@@ -797,7 +852,7 @@ public:
     }
 
     void drawTeapot(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
-        M = glm::translate(glm::mat4(1.0f), pos) *  glm::scale(glm::mat4(1.0f), scale);
+        M = glm::translate(glm::mat4(1.0f), pos) *  glm::rotate(glm::mat4(1.0f), 1.2f, vec3(-M_PI, 0, 0)) *  glm::scale(glm::mat4(1.0f), scale);
         pPlanet->bind();
         //send the matrices to the shaders
         glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
@@ -819,6 +874,8 @@ public:
 		float animFactorR = sin(m) + 0.7f;
 		float animFactor2 = cos(m * 2) + 0.7f;
 
+		mat4 globalTrans = glm::translate(glm::mat4(1.0f), pos);
+
 		mat4 globRotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
 
 
@@ -832,7 +889,7 @@ public:
 		mat4 baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		mat4 baseScale = glm::scale(glm::mat4(1), glm::vec3(4.0f, 4.0f, 0.4f));
 
-		M = globRotate * baseTranslate * baseRotate * baseScale;
+		M = globalTrans * globRotate * baseTranslate * baseRotate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -850,7 +907,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.6f, 0.6f, 1.0f));
 
-		M = globRotate * baseRotate * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -868,7 +925,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.05f, 0.05f, 0.3f));
 
-		M = globRotate * baseRotate * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -886,7 +943,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(1.2f, 1.2f, 1.5f));
 
-		M = globRotate * baseRotate * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -904,7 +961,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 		baseScale = glm::scale(glm::mat4(1), glm::vec3(0.3f, 0.3f, 1.0f));
 
-		M = globRotate * baseRotate * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -921,7 +978,7 @@ public:
 		baseTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.6f, 3.2f));
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(1.0f, 0.0f, 0.0f));
 
-		M = globRotate * baseRotate * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -940,7 +997,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		mat4 animRot = glm::rotate(glm::mat4(1), animFactorL, glm::vec3(0, 0.5f, 0));
 
-		M = globRotate * baseRotate * animRot * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -958,7 +1015,7 @@ public:
 		mat4 baseA2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.6f));
 		mat4 base2Rotate = glm::rotate(glm::mat4(1), animFactor2, glm::vec3(0, 0.5f, 0.0f));
 
-		M = globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
+		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -977,7 +1034,7 @@ public:
 		baseRotate = glm::rotate(glm::mat4(1), M_PI / 2, glm::vec3(0.5f, 0.0f, 0.0f));
 		animRot = glm::rotate(glm::mat4(1), animFactorR, glm::vec3(0, 0.5f, 0));
 
-		M = globRotate * baseRotate * animRot * baseTranslate * baseScale;
+		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -995,7 +1052,7 @@ public:
 		baseA2Translate = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0.6f));
 		base2Rotate = glm::rotate(glm::mat4(1), animFactor2, glm::vec3(0, 0.5f, 0.0f));
 
-		M = globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
+		M = globalTrans * globRotate * baseRotate * animRot * baseTranslate * baseA2Translate * base2Rotate * base2Translate * baseScale;
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glBindVertexArray(VertexArrayIDCyl);
 		//Bind the index buffer for the triangles
@@ -1012,7 +1069,7 @@ public:
 		mat4 scaleFoot = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
 		mat4 transFoot = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.3f, 0.6f));
 
-		M = globRotate * transFoot * scaleFoot;
+		M = globalTrans * globRotate * transFoot * scaleFoot;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1025,7 +1082,7 @@ public:
 		scaleFoot = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
 		transFoot = glm::translate(glm::mat4(1.0f), glm::vec3(0, -4.3f, -0.6f));
 
-		M = globRotate * transFoot * scaleFoot;
+		M = globalTrans * globRotate * transFoot * scaleFoot;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1038,7 +1095,7 @@ public:
 		mat4 scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.569f, 0.6f, 0.569f));
 		mat4 transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0, 1.8f, 0));
 
-		M = globRotate * transHead * scaleHead;
+		M = globalTrans * globRotate * transHead * scaleHead;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1051,7 +1108,7 @@ public:
 		mat4 scaleAntTop = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
 		mat4 transAntTop = glm::translate(glm::mat4(1.0f), glm::vec3(0, 2.8f, 0));
 
-		M = globRotate * transAntTop * scaleAntTop;
+		M = globalTrans * globRotate * transAntTop * scaleAntTop;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1064,7 +1121,7 @@ public:
 		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
 		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.7f, 0.15f));
 
-		M = globRotate * transHead * scaleHead;
+		M = globalTrans * globRotate * transHead * scaleHead;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1077,7 +1134,7 @@ public:
 		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
 		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.7f, -0.15f));
 
-		M = globRotate * transHead * scaleHead;
+		M = globalTrans * globRotate * transHead * scaleHead;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1090,7 +1147,7 @@ public:
 		scaleHead = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.5f));
 		transHead = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 1.1f, 0));
 
-		M = globRotate * transHead * scaleHead;
+		M = globalTrans * globRotate * transHead * scaleHead;
 		glUniformMatrix4fv(pPlanet->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(pPlanet->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1100,12 +1157,34 @@ public:
 		// **** Draw Globe
 		globeprog->bind();
 
-		M = glm::scale(glm::mat4(1.0f), glm::vec3(5, 5, 5));
+		M = globalTrans * glm::scale(glm::mat4(1.0f), glm::vec3(5, 5, 5));
 		glUniformMatrix4fv(globeprog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(globeprog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(globeprog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		sphere->draw(globeprog, false, false);
 		globeprog->unbind();
+	}
+
+	void drawEarth(vec3 pos, vec3 rotation, vec3 scale, double frametime, glm::mat4 V, glm::mat4 M, glm::mat4 P) {
+		//animation with the model matrix:
+		static float w = 0.0;
+		w += 0.3 * frametime;//rotation angle
+		glm::mat4 RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
+		float angle = -3.1415926 / 2.0;
+		glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), pos);
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
+
+		M = TransZ * RotateY * RotateX * S;
+		// Draw the box using GLSL.
+		pEarth->bind();
+		//send the matrices to the shaders
+		glUniformMatrix4fv(pEarth->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(pEarth->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(pEarth->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform3fv(pEarth->getUniform("campos"), 1, &mycam.pos[0]);
+		sphere->draw(pEarth, false, false);
+		pEarth->unbind();
 	}
 
 	/****DRAW
@@ -1119,29 +1198,45 @@ public:
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		double frametime = get_last_elapsed_time();
 
+		static unsigned score = 0;
+
 		// Get current frame buffer size.
 		int width, height;
 		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		float aspect = width/(float)height;
+		float aspect = width / (float)height;
 		glViewport(0, 0, width, height);
 
 		// Clear framebuffer.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Create the matrix stacks - please leave these alone for now
-		
+
 		glm::mat4 V, M, P; //View, Model and Perspective matrix
 		V = mycam.process(frametime);
 		M = glm::mat4(1);
 		// Apply orthographic projection....
-		P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);		
+		P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);
 		if (width < height)
-			{
-			P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
-			}
+		{
+			P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect, 1.0f / aspect, -2.0f, 100.0f);
+		}
 		// ...but we overwrite it (optional) with a perspective projection.
-		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
+		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width / (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 		float sangle = 3.1415926 / 2.;
+
+		for (int i = 0; i < RING_COUNT; i++) {
+			if (glm::distance(vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) <= 100 &&
+				glm::distance(vec3(mycam.pos.x, 0, mycam.pos.z), vec3(ringX[i], 0, ringZ[i])) >= -100) {
+				score++;
+
+				printf("HIT HIT HIT\n");
+				printf("%d %d %d\n", ringX[i], 0, ringZ[i]);
+				printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
+			}
+		}
+
+		//printf("%d %d %d\n", mycam.pos.x, mycam.pos.y, mycam.pos.z);
+
 		glm::mat4 RotateXSky = glm::rotate(glm::mat4(1.0f), sangle, glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::vec3 camp = -mycam.pos;
 		glm::mat4 TransSky = glm::translate(glm::mat4(1.0f), camp);
@@ -1152,7 +1247,6 @@ public:
 		// Draw the box using GLSL.
 		psky->bind();
 
-		
 		//send the matrices to the shaders
 		glUniformMatrix4fv(psky->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(psky->getUniform("V"), 1, GL_FALSE, &V[0][0]);
@@ -1164,7 +1258,7 @@ public:
 		glDisable(GL_DEPTH_TEST);
 		sphere->draw(psky, false, false);
 		glEnable(GL_DEPTH_TEST);
-	
+
 		psky->unbind();
 
 		//animation with the model matrix:
@@ -1172,12 +1266,12 @@ public:
 		w += 1.0 * frametime;//rotation angle
 		float trans = 0;// sin(t) * 2;
 		glm::mat4 RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
-		float angle = -3.1415926/2.0;
+		float angle = -3.1415926 / 2.0;
 		glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
 		glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3 + trans));
 		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(0.8f, 0.8f, 0.8f));
 
-		M =  TransZ * RotateY * RotateX * S;
+		M = TransZ * RotateY * RotateX * S;
 
 		// Draw the Target billboards
 		prog->bind();
@@ -1198,19 +1292,24 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture);
 
-		M = TransZ * S* Vi;
+		M = S * Vi;
 		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		
+
 		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0, RING_COUNT);
 		glBindVertexArray(0);
 		prog->unbind();
 
+		for (int i = 0; i < RING_COUNT; i++) {
+			drawBunny(bunnyPositions[i], vec3(), vec3(20, 20, 20), frametime, V, M, P);
+			drawTeapot(teapotPositions[i], vec3(), vec3(30, 30, 30), frametime, V, M, P);
+		}
 
-		drawBunny(vec3(5, 0, 10), vec3(), vec3(5, 5, 5), frametime, V, M, P);
-        drawBunny(vec3(10, 0, -6), vec3(), vec3(20, 20, 20), frametime, V, M, P);
-        drawTeapot(vec3(130.0f, 0.0f, 240.0f), vec3(), vec3(30,30,30), frametime, V, M, P);
-        drawMidtermArm(vec3(18.0f, -0.7f, -30), vec3(), vec3(), frametime, V, M, P);
-        drawBender(vec3(-30.0f, -4.6f, -4), vec3(), vec3(), frametime, V, M, P);
+		for (int i = 0; i < INTENSE_COUNT; i++) {
+			drawMidtermArm(midtermPositions[i], vec3(), vec3(), frametime, V, M, P);
+		}
+
+		drawBender(benderPositions[0], vec3(), vec3(), frametime, V, M, P);
+		drawEarth(vec3(20, 0, 20), vec3(), vec3(10,10,10), frametime, V, M, P);
 
         // Tip rate calculation
         static float tiprate = 0;
@@ -1273,6 +1372,8 @@ int main(int argc, char **argv)
 	application->genericInit(&cube, "cube.obj");
 	application->genericInit(&teapot, "teapot.obj");
 	application->initShip();
+	application->initPlanet();
+	application->initPositions();
 
 	// Loop until the user closes the window.
 	while(! glfwWindowShouldClose(windowManager->getHandle()))
